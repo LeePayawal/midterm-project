@@ -9,13 +9,23 @@ export function TopNav() {
         PhoneWorld 📱
       </div>
 
-      {/* Navigation Links */}
-      <div className="hidden md:flex space-x-6 text-gray-300">
-        <Link href="#home" className="hover:text-emerald-400 transition-colors">Home</Link>
-        <Link href="#features" className="hover:text-emerald-400 transition-colors">Features</Link>
-        <Link href="#about" className="hover:text-emerald-400 transition-colors">About</Link>
-        <Link href="#contact" className="hover:text-emerald-400 transition-colors">Contact</Link>
-      </div>
+      {/* Navigation Links (only when signed out) */}
+      <SignedOut>
+        <div className="hidden md:flex space-x-6 text-gray-300">
+          <Link href="#home" className="hover:text-emerald-400 transition-colors">
+            Home
+          </Link>
+          <Link href="#features" className="hover:text-emerald-400 transition-colors">
+            Features
+          </Link>
+          <Link href="#about" className="hover:text-emerald-400 transition-colors">
+            About
+          </Link>
+          <Link href="#contact" className="hover:text-emerald-400 transition-colors">
+            Contact
+          </Link>
+        </div>
+      </SignedOut>
 
       {/* Auth Buttons */}
       <div className="relative z-10">
