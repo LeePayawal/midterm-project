@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
@@ -18,13 +18,25 @@ interface Phone {
 
 export default function HomePage() {
   const [apiKey, setApiKey] = useState("");
-  const [phone, setPhone] = useState<Phone | null>(null);
+  const [phones, setPhones] = useState<Phone[]>([]);
   const [postBody, setPostBody] = useState(
     '{"brand":"Samsung","storage":"128GB","cpu":"Snapdragon 8 Gen 2","price":799,"imageUrl":"https://example.com/s22.jpg"}'
   );
   const [message, setMessage] = useState("");
 
-  // GET → fetch the single key
+  // Load saved phones from localStorage on page load
+  useEffect(() => {
+    const saved = localStorage.getItem("phones");
+    if (saved) {
+      setPhones(JSON.parse(saved));
+    }
+  }, []);
+
+  // Save phones into localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("phones", JSON.stringify(phones));
+  }, [phones]);
+
   async function runGET() {
     if (!apiKey) {
       setMessage("❌ Please enter your API Key");
@@ -37,19 +49,24 @@ export default function HomePage() {
       const data = await res.json();
 
       if (res.ok) {
-        setPhone(data);
-        setMessage("✅ Key fetched successfully");
+        // only add if not revoked
+        if (!data.revoked) {
+          setPhones((prev) => {
+            if (prev.some((p) => p.id === data.id)) return prev;
+            return [...prev, data];
+          });
+          setMessage("✅ Key fetched successfully");
+        } else {
+          setMessage("❌ This key is revoked");
+        }
       } else {
-        setPhone(null);
         setMessage("❌ " + (data.error || "Failed to fetch key"));
       }
     } catch (err) {
-      setPhone(null);
       setMessage("❌ Error: " + (err as Error).message);
     }
   }
 
-  // POST → add a phone
   async function runPOST() {
     try {
       const res = await fetch("/api/proxy", {
@@ -62,8 +79,12 @@ export default function HomePage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage("✅ Phone added successfully!");
-        runGET(); // fetch the new phone
+        if (!data.revoked) {
+          setMessage("✅ Phone added successfully!");
+          setPhones((prev) => [...prev, data]);
+        } else {
+          setMessage("❌ Cannot add phone, key revoked");
+        }
       } else {
         setMessage("❌ " + (data.error || "Failed to add phone"));
       }
@@ -95,7 +116,9 @@ export default function HomePage() {
           </p>
           <div className="mt-6 flex items-center justify-center space-x-4">
             <div className="w-3 h-3 bg-emerald-500 rounded-full animate-ping"></div>
-            <span className="text-emerald-400 font-medium">Website B → Website A Integration</span>
+            <span className="text-emerald-400 font-medium">
+              Website B → Website A Integration
+            </span>
             <div className="w-3 h-3 bg-emerald-500 rounded-full animate-ping"></div>
           </div>
         </div>
@@ -109,9 +132,11 @@ export default function HomePage() {
                 <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center mr-4">
                   <span className="text-xl">🔑</span>
                 </div>
-                <h2 className="text-2xl font-bold text-white">API Configuration</h2>
+                <h2 className="text-2xl font-bold text-white">
+                  API Configuration
+                </h2>
               </div>
-              
+
               <div className="space-y-6">
                 <div>
                   <label className="block text-lg font-semibold text-slate-300 mb-3">
@@ -126,20 +151,24 @@ export default function HomePage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mt-8">
-                  <Button 
-                    onClick={runGET} 
-                    className="h-16 text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 rounded-xl shadow-lg hover:shadow-emerald-500/25 transition-all duration-200"
+                  <Button
+                    onClick={runGET}
+                    className="h-16 text-lg font-semibold bg-gradient-to-r from-emerald-600 center to-teal-600 hover:from-emerald-700 hover:to-teal-700 rounded-xl shadow-lg hover:shadow-emerald-500/25 transition-all duration-200"
+                    
                   >
                     <span className="mr-2">📥</span>
-                    FETCH DATA
+                    GET DATA
                   </Button>
-                  <Button 
-                    onClick={runPOST} 
-                    className="h-16 text-lg font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-lg hover:shadow-blue-500/25 transition-all duration-200"
-                  >
-                    <span className="mr-2">📤</span>
-                    SEND DATA
-                  </Button>
+                  {/*
+<Button
+  onClick={runPOST}
+  className="h-16 text-lg font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-lg hover:shadow-blue-500/25 transition-all duration-200"
+>
+  <span className="mr-2">📤</span>
+  SEND DATA
+</Button>
+*/}
+
                 </div>
               </div>
             </div>
@@ -152,7 +181,7 @@ export default function HomePage() {
                 </div>
                 <h2 className="text-2xl font-bold text-white">Data Payload</h2>
               </div>
-              
+
               <div>
                 <label className="block text-lg font-semibold text-slate-300 mb-3">
                   JSON Configuration
@@ -181,93 +210,83 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Inventory Display */}
-          {phone && (
+          {/* Horizontal Inventory Display */}
+          {phones.filter((phone) => !phone.revoked).length > 0 && (
             <div className="bg-slate-900/60 backdrop-blur-xl rounded-3xl p-8 border border-slate-700/50 shadow-2xl">
               <div className="flex items-center mb-8">
                 <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center mr-4">
                   <span className="text-xl">📊</span>
                 </div>
-                <h2 className="text-3xl font-bold text-white">Device Inventory</h2>
+                <h2 className="text-3xl font-bold text-white">
+                  Device Inventory ({phones.filter((p) => !p.revoked).length})
+                </h2>
               </div>
 
-              {/* Large Card Display */}
-              <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-8 border border-slate-700/30">
-                <div className="grid lg:grid-cols-3 gap-8 items-center">
-                  {/* Image Section */}
-                  <div className="lg:col-span-1 flex justify-center">
-                    <div className="relative">
-                      {phone.imageUrl ? (
-                        <div className="relative">
+              {/* Horizontal Grid Layout */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {phones
+                  .filter((phone) => !phone.revoked) // 🚫 exclude revoked
+                  .map((phone) => (
+                    <div
+                      key={phone.id}
+                      className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 rounded-2xl p-6 border border-slate-700/30 shadow-xl hover:shadow-2xl hover:border-slate-600/50 transition-all duration-300 group"
+                    >
+                      {/* Phone Image */}
+                      <div className="flex justify-center mb-4">
+                        {phone.imageUrl ? (
                           <img
                             src={phone.imageUrl}
                             alt={phone.brand}
-                            className="w-48 h-48 object-cover rounded-2xl border-4 border-slate-600 shadow-2xl"
+                            className="w-24 h-24 object-cover rounded-xl border-2 border-slate-600 shadow-lg group-hover:scale-105 transition-transform duration-200"
                           />
-                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full border-2 border-white"></div>
-                        </div>
-                      ) : (
-                        <div className="w-48 h-48 bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl border-4 border-slate-600 shadow-2xl flex items-center justify-center">
-                          <span className="text-6xl text-slate-500">📱</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                        ) : (
+                          <div className="w-24 h-24 bg-slate-800 rounded-xl flex items-center justify-center border-2 border-slate-600">
+                            <span className="text-3xl text-slate-500">📱</span>
+                          </div>
+                        )}
+                      </div>
 
-                  {/* Details Section */}
-                  <div className="lg:col-span-2 space-y-6">
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-600/30">
-                        <div className="text-sm text-slate-400 mb-2">BRAND</div>
-                        <div className="text-2xl font-bold text-white">{phone.brand}</div>
-                      </div>
-                      
-                      <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-600/30">
-                        <div className="text-sm text-slate-400 mb-2">PRICE</div>
-                        <div className="text-2xl font-bold text-emerald-400">${phone.price}</div>
-                      </div>
-                      
-                      <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-600/30">
-                        <div className="text-sm text-slate-400 mb-2">STORAGE</div>
-                        <div className="text-xl font-semibold text-white">{phone.storage}</div>
-                      </div>
-                      
-                      <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-600/30">
-                        <div className="text-sm text-slate-400 mb-2">PROCESSOR</div>
-                        <div className="text-xl font-semibold text-white">{phone.cpu}</div>
-                      </div>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-600/30">
-                        <div className="text-sm text-slate-400 mb-2">STATUS</div>
-                        <div className="flex items-center">
-                          {phone.revoked ? (
-                            <>
-                              <div className="w-3 h-3 bg-red-500 rounded-full mr-3 animate-pulse"></div>
-                              <span className="text-red-400 font-semibold">REVOKED</span>
-                            </>
-                          ) : (
-                            <>
-                              <div className="w-3 h-3 bg-green-500 rounded-full mr-3 animate-pulse"></div>
-                              <span className="text-green-400 font-semibold">ACTIVE</span>
-                            </>
-                          )}
+                      {/* Phone Details */}
+                      <div className="space-y-3">
+                        {/* Brand and Price */}
+                        <div className="text-center">
+                          <h3 className="text-lg font-bold text-white mb-1">
+                            {phone.brand}
+                          </h3>
+                          <div className="text-2xl font-bold text-emerald-400">
+                            ₱{phone.price.toLocaleString()}
+                          </div>
                         </div>
-                      </div>
-                      
-                      <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-600/30">
-                        <div className="text-sm text-slate-400 mb-2">CREATED</div>
-                        <div className="text-lg text-white font-medium">
-                          {new Date(phone.createdAt).toLocaleDateString()} 
-                          <div className="text-sm text-slate-400 mt-1">
-                            {new Date(phone.createdAt).toLocaleTimeString()}
+
+                        {/* Specs Grid */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-slate-800/50 rounded-lg p-3 text-center">
+                            <div className="text-xs text-slate-400 mb-1">STORAGE</div>
+                            <div className="text-sm font-semibold text-white">
+                              {phone.storage}
+                            </div>
+                          </div>
+                          <div className="bg-slate-800/50 rounded-lg p-3 text-center">
+                            <div className="text-xs text-slate-400 mb-1">CPU</div>
+                            <div
+                              className="text-sm font-semibold text-white truncate"
+                              title={phone.cpu}
+                            >
+                              {phone.cpu}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Date only (removed status since revoked hidden) */}
+                        <div className="bg-slate-800/50 rounded-lg p-3 text-center">
+                          <div className="text-xs text-slate-400 mb-1">CREATED</div>
+                          <div className="text-sm font-semibold text-white">
+                            {new Date(phone.createdAt).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  ))}
               </div>
             </div>
           )}
