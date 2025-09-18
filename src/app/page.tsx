@@ -16,6 +16,8 @@ interface Phone {
   revoked: boolean;
 }
 
+type ApiResponse = Phone & { error?: string }; // ✅ allow error
+
 export default function HomePage() {
   const [apiKey, setApiKey] = useState("");
   const [phones, setPhones] = useState<Phone[]>([]);
@@ -46,10 +48,10 @@ export default function HomePage() {
       const res = await fetch("/api/proxy", {
         headers: { "x-api-key": apiKey },
       });
-      const data = await res.json();
+
+      const data: ApiResponse = await res.json(); // ✅ union type
 
       if (res.ok) {
-        // only add if not revoked
         if (!data.revoked) {
           setPhones((prev) => {
             if (prev.some((p) => p.id === data.id)) return prev;
@@ -60,7 +62,7 @@ export default function HomePage() {
           setMessage("❌ This key is revoked");
         }
       } else {
-        setMessage("❌ " + (data.error || "Failed to fetch key"));
+        setMessage("❌ " + (data.error ?? "Failed to fetch key")); // ✅ safe
       }
     } catch (err) {
       setMessage("❌ Error: " + (err as Error).message);
@@ -77,7 +79,9 @@ export default function HomePage() {
         },
         body: postBody,
       });
-      const data = await res.json();
+
+      const data: ApiResponse = await res.json(); // ✅ union type
+
       if (res.ok) {
         if (!data.revoked) {
           setMessage("✅ Phone added successfully!");
@@ -86,12 +90,14 @@ export default function HomePage() {
           setMessage("❌ Cannot add phone, key revoked");
         }
       } else {
-        setMessage("❌ " + (data.error || "Failed to add phone"));
+        setMessage("❌ " + (data.error ?? "Failed to add phone")); // ✅ safe
       }
     } catch (err) {
       setMessage("❌ Error: " + (err as Error).message);
     }
   }
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950 text-white">
