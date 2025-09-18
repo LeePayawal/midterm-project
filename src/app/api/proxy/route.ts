@@ -1,7 +1,22 @@
 import { NextResponse } from "next/server";
 
-const WEB_A_URL = process.env.WEB_A_URL || "http://localhost:3000"; 
-// Web A must be running here
+const WEB_A_URL = process.env.WEB_A_URL ?? "http://localhost:3000";
+
+// Types for responses
+interface Phone {
+  id: string;
+  brand: string;
+  storage: string;
+  cpu: string;
+  price: number;
+  imageUrl?: string;
+  revoked?: boolean;
+}
+
+interface KeysResponse {
+  items?: Phone[];
+  error?: string;
+}
 
 // Proxy GET → Web A /api/keys
 export async function GET(req: Request) {
@@ -12,7 +27,7 @@ export async function GET(req: Request) {
       headers: { "x-api-key": apiKey },
     });
 
-    const data = await res.json();
+    const data: KeysResponse = await res.json();
 
     // Only return the first key associated with this API key
     if (res.ok && data.items && data.items.length > 0) {
@@ -33,7 +48,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const apiKey = req.headers.get("x-api-key") ?? "";
-    const body = await req.json();
+    const body = (await req.json()) as Partial<Phone>;
 
     const res = await fetch(`${WEB_A_URL}/api/keys`, {
       method: "POST",
@@ -44,7 +59,7 @@ export async function POST(req: Request) {
       body: JSON.stringify(body),
     });
 
-    const data = await res.json();
+    const data: Phone | { error: string } = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (error) {
     console.error("Proxy POST failed:", error);
