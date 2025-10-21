@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const WEB_A_URL = process.env.WEB_A_URL ?? "https://acitivity-project-ihvj.vercel.app/keys";
+const WEB_A_URL = process.env.WEB_A_URL ?? "https://acitivity-project-usky.vercel.app";
 
 export async function GET() {
   try {
