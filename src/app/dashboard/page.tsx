@@ -61,10 +61,10 @@ export default function DashboardPage() {
   }, []);
 
   const categories = [
-    { name: "Running Shoes", emoji: "👟" },
-    { name: "Dress Shoes", emoji: "👞" },
-    { name: "Sneakers", emoji: "👟" },
-    { name: "Boots", emoji: "🥾" }
+    { name: "Running Shoes", emoji: "👟", filterTerm: "running" },
+    { name: "Dress Shoes", emoji: "👞", filterTerm: "dress" },
+    { name: "Sneakers", emoji: "👟", filterTerm: "sneaker" },
+    { name: "Boots", emoji: "🥾", filterTerm: "boot" }
   ];
 
   const availableSizes = ["6", "7", "8", "9", "10", "11", "12", "13"];
@@ -81,7 +81,11 @@ export default function DashboardPage() {
   ];
 
   const filteredShoes = selectedCategory
-    ? shoes.filter(shoe => shoe.type.toLowerCase().includes(selectedCategory.toLowerCase()))
+    ? shoes.filter(shoe => {
+        const category = categories.find(cat => cat.name === selectedCategory);
+        if (!category) return false;
+        return shoe.type.toLowerCase().includes(category.filterTerm);
+      })
     : shoes;
 
   const searchFilteredShoes = filteredShoes.filter(shoe => {
@@ -394,23 +398,21 @@ export default function DashboardPage() {
         </div>
 
         {/* Newsletter CTA */}
-<div className="bg-gradient-to-r from-gray-900 via-black to-gray-800 rounded-3xl text-center py-20 px-8 shadow-2xl border border-gray-700/50">
-  <h2 className="text-5xl font-extrabold text-white mb-4 tracking-tight">
-    Stay Real. Stay REALE$T 👟
-  </h2>
-  <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
-    More than sneakers — it’s a movement.  
-    Elevate your collection, express your style, and step into authenticity.
-  </p>
-  <div className="flex justify-center mt-10">
-    <div className="">
-      
-    </div>
-  </div>
-</div>
+        <div className="bg-gradient-to-r from-gray-900 via-black to-gray-800 rounded-3xl text-center py-20 px-8 shadow-2xl border border-gray-700/50">
+          <h2 className="text-5xl font-extrabold text-white mb-4 tracking-tight">
+            Stay Real. Stay REALE$T 👟
+          </h2>
+          <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
+            More than sneakers — it's a movement.  
+            Elevate your collection, express your style, and step into authenticity.
+          </p>
+          <div className="flex justify-center mt-10">
+            <div className="">
+              
+            </div>
+          </div>
         </div>
-
-
+      </div>
 
       {/* Size Chart Modal */}
       {showSizeChart && (

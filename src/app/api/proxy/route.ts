@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-const WEB_A_URL = process.env.WEB_A_URL ?? "https://acitivity-project-usky.vercel.app";
+const WEB_A_URL =
+  process.env.NODE_ENV === "production"
+    ? "https://activity-project-usky.vercel.app"
+    : "http://localhost:3000";
 
 export async function GET() {
   try {
