@@ -53,47 +53,69 @@ interface CartContextType {
   clearCart: () => void;
   getCartTotal: () => number;
   getTotalItems: () => number;
-  completeOrder: (shippingInfo: any, paymentMethod: string) => void;
+  completeOrder: (shippingInfo: any, paymentMethod: string) => Promise<void>;
   cancelOrder: (orderId: string) => void;
   isHydrated: boolean;
+  loadOrders: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  // Start with empty state to match server rendering
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // Load from localStorage after component mounts (client-side only)
+  // Load from localStorage after component mounts
   useEffect(() => {
     const savedCart = localStorage.getItem('shoeCart');
-    const savedOrders = localStorage.getItem('shoeOrders');
     
     if (savedCart) {
       setCart(JSON.parse(savedCart));
     }
-    if (savedOrders) {
-      setOrders(JSON.parse(savedOrders));
-    }
+    
+    // Load orders from database
+    loadOrders();
     
     setIsHydrated(true);
   }, []);
 
-  // Save cart to localStorage whenever it changes (after hydration)
+  // Save cart to localStorage whenever it changes
   useEffect(() => {
     if (isHydrated) {
       localStorage.setItem('shoeCart', JSON.stringify(cart));
     }
   }, [cart, isHydrated]);
 
-  // Save orders to localStorage whenever they change (after hydration)
-  useEffect(() => {
-    if (isHydrated) {
-      localStorage.setItem('shoeOrders', JSON.stringify(orders));
+  const loadOrders = async () => {
+    try {
+      const res = await fetch('/api/orders');
+      if (res.ok) {
+        const dbOrders = await res.json();
+        
+        // Transform database orders to match our format
+        const formattedOrders = dbOrders.map((order: any) => ({
+          id: order.id,
+          date: order.orderDate,
+          items: order.items,
+          total: order.total,
+          status: order.status,
+          shippingInfo: order.shippingInfo,
+          paymentMethod: order.paymentMethod,
+          trackingNumber: order.trackingNumber,
+        }));
+        
+        setOrders(formattedOrders);
+      }
+    } catch (error) {
+      console.error("Failed to load orders:", error);
+      // Fallback to localStorage if database fails
+      const savedOrders = localStorage.getItem('shoeOrders');
+      if (savedOrders) {
+        setOrders(JSON.parse(savedOrders));
+      }
     }
-  }, [orders, isHydrated]);
+  };
 
   const addToCart = (shoe: Shoe, orderItems: OrderItem[]) => {
     const newCartItems: CartItem[] = [];
@@ -104,7 +126,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       );
 
       if (existingItem) {
-        // Update existing item quantity
         setCart(prevCart =>
           prevCart.map((item) =>
             item.id === existingItem.id
@@ -113,7 +134,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           )
         );
       } else {
-        // Create new cart item
         const newItem: CartItem = {
           id: `${shoe.id}-${orderItem.size}-${Date.now()}-${Math.random()}`,
           shoe,
@@ -157,7 +177,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     return cart.reduce((sum, item) => sum + item.quantity, 0);
   };
 
-  const completeOrder = (shippingInfo: any, paymentMethod: string) => {
+  const completeOrder = async (shippingInfo: any, paymentMethod: string) => {
     const orderId = `ORD-${Date.now().toString().slice(-8)}`;
     const trackingNumber = `TRK${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     
@@ -171,6 +191,27 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       paymentMethod,
       trackingNumber,
     };
+
+    try {
+      // Save to database
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newOrder),
+      });
+
+      if (res.ok) {
+        console.log("Order saved to database successfully");
+      } else {
+        console.error("Failed to save order to database");
+        // Fallback: save to localStorage
+        localStorage.setItem('shoeOrders', JSON.stringify([newOrder, ...orders]));
+      }
+    } catch (error) {
+      console.error("Error saving order:", error);
+      // Fallback: save to localStorage
+      localStorage.setItem('shoeOrders', JSON.stringify([newOrder, ...orders]));
+    }
 
     setOrders([newOrder, ...orders]);
     clearCart();
@@ -194,6 +235,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         completeOrder,
         cancelOrder,
         isHydrated,
+        loadOrders,
       }}
     >
       {children}
