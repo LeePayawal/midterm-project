@@ -3,7 +3,9 @@ import { db } from "~/server/db";
 import { shoes } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 
-const WEB_A_URL = process.env.WEB_A_URL!;
+const WEB_A_URL = process.env.NODE_ENV === 'production' 
+  ? (process.env.WEB_A_URL_PROD || process.env.WEB_A_URL)
+  : (process.env.WEB_A_URL || 'http://localhost:3000');
 
 export async function POST() {
   try {
@@ -17,7 +19,6 @@ export async function POST() {
       return NextResponse.json({ error: "No shoes found from Web A" }, { status: 404 });
     }
 
-    // Insert or update shoes in database
     const syncedShoes = [];
     
     for (const shoe of data.items) {
@@ -34,18 +35,15 @@ export async function POST() {
         fetchedAt: new Date(),
       };
 
-      // Check if shoe exists
       const existing = await db.query.shoes.findFirst({
         where: eq(shoes.id, shoe.id),
       });
 
       if (existing) {
-        // Update existing shoe
         await db.update(shoes)
           .set(shoeData)
           .where(eq(shoes.id, shoe.id));
       } else {
-        // Insert new shoe
         await db.insert(shoes).values(shoeData);
       }
 
@@ -67,7 +65,6 @@ export async function POST() {
   }
 }
 
-// Optional: GET route to manually trigger sync
 export async function GET() {
   return POST();
 }

@@ -5,7 +5,6 @@ import { desc } from "drizzle-orm";
 
 export async function GET() {
   try {
-    // Get all shoes from database
     const allShoes = await db.query.shoes.findMany({
       orderBy: [desc(shoes.createdAt)],
     });

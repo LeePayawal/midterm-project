@@ -167,7 +167,6 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#000000] via-[#1a1a1a] to-[#2d2d2d] text-white">
-      {/* Navigation Bar */}
       <nav className="border-b border-white/10 bg-black/50 backdrop-blur-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -201,7 +200,6 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      {/* Size Chart Button - Fixed Position Top Right */}
       <button
         onClick={() => setShowSizeChart(true)}
         className="fixed top-24 right-6 z-30 flex items-center gap-2 px-4 py-3 bg-white text-black font-semibold rounded-lg hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl"
@@ -211,7 +209,6 @@ export default function DashboardPage() {
       </button>
 
       <div className="container mx-auto px-4 py-16">
-        {/* Header */}
         <div className="text-center mb-16">
           <h1 className="text-5xl font-black tracking-tight text-white sm:text-6xl mb-6">
             Premium{" "}
@@ -226,7 +223,6 @@ export default function DashboardPage() {
           <p className="mt-4 text-sm text-gray-400">{message}</p>
         </div>
 
-        {/* Search Section */}
         <div className="mb-8 flex flex-col items-center">
           <div className="w-full max-w-2xl">
             <input
@@ -256,7 +252,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Shoe Collections Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           {currentShoes.length > 0 ? (
             currentShoes.map((shoe) => (
@@ -322,7 +317,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex justify-center items-center gap-2 mb-20">
             <button
@@ -368,7 +362,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Shoe Categories */}
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold mb-8 text-white">Shop by Shoe Type</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -397,7 +390,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Newsletter CTA */}
         <div className="bg-gradient-to-r from-gray-900 via-black to-gray-800 rounded-3xl text-center py-20 px-8 shadow-2xl border border-gray-700/50">
           <h2 className="text-5xl font-extrabold text-white mb-4 tracking-tight">
             Stay Real. Stay REALE$T 👟
@@ -406,15 +398,9 @@ export default function DashboardPage() {
             More than sneakers — it's a movement.  
             Elevate your collection, express your style, and step into authenticity.
           </p>
-          <div className="flex justify-center mt-10">
-            <div className="">
-              
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Size Chart Modal */}
       {showSizeChart && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-gradient-to-b from-[#1a1a1a] to-[#2d2d2d] rounded-2xl border border-white/20 max-w-lg w-full max-h-[600px]">
@@ -473,7 +459,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Add to Cart Modal */}
       {showModal && selectedShoe && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-gradient-to-b from-[#1a1a1a] to-[#2d2d2d] rounded-2xl border border-white/20 max-w-2xl w-full max-h-[90vh] overflow-y-auto">

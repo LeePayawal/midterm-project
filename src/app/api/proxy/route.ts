@@ -1,19 +1,23 @@
 import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { shoes } from "~/server/db/schema";
-import { desc, eq, notInArray } from "drizzle-orm";
+import { desc, notInArray } from "drizzle-orm";
 
-const WEB_A_URL = process.env.WEB_A_URL!;
+const WEB_A_URL = process.env.NODE_ENV === 'production' 
+  ? (process.env.WEB_A_URL_PROD || process.env.WEB_A_URL)
+  : (process.env.WEB_A_URL || 'http://localhost:3000');
 
 export async function GET() {
   try {
-    // Always try to fetch from Web A first
-    console.log("Fetching from:", `${WEB_A_URL}/api/keys`);
+    console.log("🔍 Environment:", process.env.NODE_ENV);
+    console.log("🔍 Fetching from:", `${WEB_A_URL}/api/keys`);
     
     const res = await fetch(`${WEB_A_URL}/api/keys`, { 
       cache: "no-store",
-      signal: AbortSignal.timeout(5000) // 5 second timeout
+      signal: AbortSignal.timeout(5000)
     });
+
+    console.log("📡 Response status:", res.status);
 
     if (res.ok) {
       const data = await res.json();
@@ -21,9 +25,7 @@ export async function GET() {
       if (data.items && Array.isArray(data.items)) {
         const activeShoeIds: string[] = [];
         
-        // Sync active shoes to database
         for (const shoe of data.items) {
-          // Only process non-revoked shoes
           if (!shoe.revoked) {
             activeShoeIds.push(shoe.id);
             
@@ -44,28 +46,23 @@ export async function GET() {
           }
         }
 
-        // Remove shoes that are no longer in the active list (revoked or deleted)
         if (activeShoeIds.length > 0) {
           await db.delete(shoes).where(notInArray(shoes.id, activeShoeIds));
         } else {
-          // If no active shoes, clear all
           await db.delete(shoes);
         }
 
-        // Return only non-revoked shoes
         const activeShoes = data.items.filter((shoe: any) => !shoe.revoked);
         console.log(`✅ Fetched ${activeShoes.length} active shoes from Web A`);
         return NextResponse.json(activeShoes, { status: 200 });
       }
     }
 
-    // If Web A fails, fallback to database (filter out any revoked items)
     console.log("⚠️ Web A unavailable, falling back to database");
     const dbShoes = await db.query.shoes.findMany({
       orderBy: [desc(shoes.createdAt)],
     });
 
-    // Filter out revoked shoes from cache
     const activeDbShoes = dbShoes.filter(shoe => !shoe.revoked);
 
     if (activeDbShoes.length > 0) {
@@ -76,15 +73,13 @@ export async function GET() {
     return NextResponse.json({ error: "No shoes available" }, { status: 404 });
     
   } catch (error) {
-    console.error("Error fetching from Web A:", error);
+    console.error("❌ Error fetching from Web A:", error);
     
-    // Fallback to database on error
     try {
       const dbShoes = await db.query.shoes.findMany({
         orderBy: [desc(shoes.createdAt)],
       });
 
-      // Filter out revoked shoes
       const activeDbShoes = dbShoes.filter(shoe => !shoe.revoked);
 
       if (activeDbShoes.length > 0) {
@@ -92,7 +87,7 @@ export async function GET() {
         return NextResponse.json(activeDbShoes, { status: 200 });
       }
     } catch (dbError) {
-      console.error("Database fallback also failed:", dbError);
+      console.error("❌ Database fallback also failed:", dbError);
     }
 
     return NextResponse.json(

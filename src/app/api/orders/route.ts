@@ -3,11 +3,10 @@ import { db } from "~/server/db";
 import { orders } from "~/server/db/schema";
 import { desc } from "drizzle-orm";
 
-// POST - Save a new order to database
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
+        
     const orderData = {
       id: body.id,
       orderDate: new Date(body.date),
@@ -22,11 +21,10 @@ export async function POST(request: Request) {
 
     await db.insert(orders).values(orderData);
 
-    return NextResponse.json({ 
-      success: true, 
-      order: orderData 
+    return NextResponse.json({
+      success: true,
+      order: orderData
     }, { status: 201 });
-
   } catch (error) {
     console.error("Failed to save order:", error);
     return NextResponse.json(
@@ -36,7 +34,6 @@ export async function POST(request: Request) {
   }
 }
 
-// GET - Retrieve all orders from database
 export async function GET() {
   try {
     const allOrders = await db.query.orders.findMany({
